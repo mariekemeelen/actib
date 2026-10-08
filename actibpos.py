@@ -26,8 +26,9 @@ def ensureverbs():
         VERBS[elts[0]] = True
         line = source_file.readline()
     source_file.close()
-
-VERBPAT = re.compile("([^/ ]+)/+[^ v]*v\.[^ ]+ -") #་this one IS working!!!
+#ADDING "-" at the end of the following regex avoid verbs to be tagged as n.count in tag patterns PUNCT+VERB/VERBAL NOUNS+CV/CASE; 
+#also fix many cv.X to be tagged as n.count
+VERBPAT = re.compile(r"([^/ ]+)/+[^ v]*v\.[^ ]+ -") #་this one IS working!!!
 VERBCASEPAT = re.compile(r"/(?P<firsttag>[^\s]+\.)(?P<second>[^ \.]+\s+[^/ ]+/+)(?P<caseorcv>case|cv)\.")
 
 def verbrepl(matchobj, VERBS):
@@ -65,7 +66,7 @@ def forcedpos2(posstr):
     posstr = re.sub(r'(^|\s)ལ(//?)case.all\sས་(//?)([^\s]+)\s', r'\1ལས་\2case.abl ', posstr)
     posstr = re.sub(r'(//?)n.count\sཅན་(//?)([^\s]+)\s', r'ཅན་/n.count ', posstr)
     posstr = re.sub(r'\sཕྱིར(་?)(//?)([^\s]+)\s', r' ཕྱི/n.count ར\1/case.term ', posstr)
-    posstr = re.sub(r'gen\sཕྱི/n.count ར(་?)/case.term\s', r'gen ཕྱི/n.rel ར\1/case.term ', posstr)
+    posstr = re.sub(r'gen\sཕྱི/n.count ར(་?)/case.term\s', r'gen ཕྱི/n.man ར\1/case.term ', posstr)
     posstr = re.sub(r'\sཅི(་?)(//?)([^\s]+)\sསྲིད(་?)(//?)([^\s]+)\s', r' ཅི་སྲིད\4/p.interrog ', posstr)
     posstr = re.sub(r'\sཡ(་?)(//?)([^\s]+)\sརེ(་?)(//?)([^\s]+)\s', r' ཡ་རེ\4/d.quant ', posstr)
     posstr = re.sub(r'\sསླན(་?)(//?)([^\s]+)\sཅད(་?)(//?)([^\s]+)\s', r' སླན་ཅད\4/adv.dir ', posstr)
@@ -76,7 +77,7 @@ def forcedpos2(posstr):
     posstr = re.sub(r'\sསྔོན(་?)(//?)([^\s]+)\sཅད(་?)(//?)([^\s]+)\s', r' སྔོན་ཅད\4/adv.dir ', posstr)
     posstr = re.sub(r'\sབདག(་?)(//?)([^\s]+)\sགི(་?)(//?)([^\s]+)\sབ(་?)(//?)([^\s]+)', r' བདག་གི་བ\7/n.count ', posstr)
 
-#forcing specific Buddhist/Sanskrit terms and names:
+    #forcing specific Buddhist/Sanskrit terms and names:
     posstr = re.sub(r'\sབྱང་ཆུབ(་?)(//?)([^\s]+)\sསེམས་དཔའ(་?)(//?)([^\s]+)\s', r' བྱང་ཆུབ་སེམས་དཔའ\4/n.count ', posstr)
     posstr = re.sub(r'\sདེ་བཞིན(་?)(//?)([^\s]+)\sགཤེགས་པ(་?)(//?)([^\s]+)\s', r' དེ་བཞིན་གཤེགས་པ\4/n.count ', posstr)
     posstr = re.sub(r'\sཡང(་?)(//?)([^\s]+)\sདག་པ(་?)(//?)([^\s]+)\s', r' ཡང་དག་པ\4/n.count ', posstr)
@@ -85,7 +86,10 @@ def forcedpos2(posstr):
     posstr = re.sub(r'\sཉུག(་?)(//?)([^\s]+)\sརུམ(་?)(//?)([^\s]+)\s', r' ཉུག་རུམ\4/n.count ', posstr)
     posstr = re.sub(r'\sལྷ་མ(་?)(//?)([^\s]+)\sཡིན(་?)(//?)([^\s]+)\s', r' ལྷ་མ་ཡིན\4/n.count ', posstr)
     posstr = re.sub(r'\sཀུན(་?)(//?)([^\s]+)\sཏུ(་?)(//?)([^\s]+)\sརྒྱུ་བ་(་?)(//?)([^\s]+)\s', r' ཀུན་ཏུ་རྒྱུ་བ་\7/n.count ', posstr)
-
+    #forced rules for adv.* when followed by case.* --> n.*
+    posstr = re.sub(r'([ༀ-࿘]//?)adv\.([^\s]*)\s([ༀ-࿘]*//?(?:case))', r'\1n.\2 \3', posstr)
+    #fixing wrong segmentation: དམ་བཅ/X + ས་པ་/X --> དམ་བཅས་པ་/n.count
+    posstr = re.sub(r'(དམ་བཅ//?[^\s]+)\s(ས་པ(་?)//?[^\s]+)', r'དམ་བཅས་པ\3/n.count', posstr)
     #print(posstr)
     return posstr
 
@@ -102,7 +106,7 @@ def forcedpos(posstr):
     posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:ལོ|ངོ|མོ|གོ|སོ|མོ|སོ)་?//?)([^\s]+)\s', r'\1 \2cv.fin ', posstr)
     posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:ཞིང|ཅིང|ཤིང)་?//?)([^\s]+)\s།', r'\1 \2cv.impf །', posstr)
     posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:ཞིང|ཅིང|ཤིང)་?//?)([^\s]+)\s', r'\1 \2cv.impf ', posstr)
-    posstr = re.sub(r'(^|\s)((?:《|》|༈|༼|༽|༏|༑|༐|༒)//?)([^\s]+)', r'\1\2punc', posstr)
+    posstr = re.sub(r'(^|\s)((?:《|》|༈|༼|༽|༏|༑|༐|༒|༎|༄༅༅|༴|་)//?)([^\s]+)', r'\1\2punc', posstr)
     #posstr = re.sub(r'(^|\s)((?:གང|མཆོག)་?//?)([^\s]+)', r'\1\2adj', posstr) #new SOAS pos corrections starting here
     posstr = re.sub(r'(^|\s)((?:འམ)་?//?)([^\s]+)', r'\1\2cv.ques', posstr)
     posstr = re.sub(r'(^|\s)((?:ཐག)་?//?)([^\s]+)', r'\1\2v.invar.thag', posstr)
@@ -255,16 +259,30 @@ def forcedpos(posstr):
     posstr = re.sub(r'(^|\s)((?:རེད་བ)་?//?)([^\s]+)', r'\1\2n.v.invar.red', posstr)
     posstr = re.sub(r'(^|\s)((?:བཞག)་?//?)([^\s]+)', r'\1\2v.past.bzhag', posstr)
     posstr = re.sub(r'(^|\s)((?:བཞག་པ)་?//?)([^\s]+)', r'\1\2n.v.past.bzhag', posstr)
-    posstr = re.sub(r'(^|\s)((?:རྒྱུ)་?//?)([^\s]+)', r'\1\2v.invar.rgyu', posstr)
+    posstr = re.sub(r'([ༀ-࿘]+//?v\.[^\s]*)\s((?:རྒྱུ)་?//?)([^\s]+)', r'\1 \2v.invar.rgyu', posstr)
     posstr = re.sub(r'(^|\s)((?:རྒྱུ་བ)་?//?)([^\s]+)', r'\1\2n.v.invar.rgyu', posstr)
+    posstr = re.sub(r'(^|\s)((?:གྲང)་?//?)([^\s]+)', r'\1\2v.invar.grang', posstr)
+    posstr = re.sub(r'(^|\s)((?:གྲང་བ)་?//?)([^\s]+)', r'\1\2n.v.invar.grang', posstr)
+    posstr = re.sub(r'(^|\s)((?:ཀྲང)་?//?)([^\s]+)', r'\1\2v.invar.grang', posstr)
+    
     #fixed tags for cv ela, cv.agn/ཀྱིས and cv.cont
     posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:ནས)་?//?)([^\s]+)\s', r'\1 \2cv.ela ', posstr)
     posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:ཀྱིས)་?//?)([^\s]+)', r'\1 \2cv.agn', posstr)
     posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:ཀྱིན|གིན|གྱིན)་?//?)([^\s]+)', r'\1 \2cv.cont', posstr)
-    #fixed tags for ཤིན་ and རབ་ --> adv.intense if followed by ཏུ་
-    posstr = re.sub(r'(^|\s)((?:རབ|ཤིན)་?//?)([^\s]+)(\s(?:ཏུ)་?//?)', r'\1\2adv.intense\4', posstr)
+   
+    #fixed tags for གིས (mainly when followed by shad) --> case.agn and cv.agn if preceded by v.* or n.v.* or n.count
+    posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:གིས)་?//?)([^\s]+)', r'\1 \2cv.agn', posstr)
+    posstr = re.sub(r'([ༀ-࿘]//?n\.count)\s((?:གིས)་?//?)([^\s]+)', r'\1 \2case.agn', posstr)
+    posstr = re.sub(r'([ༀ-࿘]//?n\.v\.[^\s]*)\s((?:གིས)་?//?)([^\s]+)', r'\1 \2case.agn', posstr)
+    #rule for བཅས་/v.invar forced to v.rel when preceded by དང་
+    posstr = re.sub(r'(དང་?/(case.ass|cv.ass))\s((?:བཅས)་?//?)([^\s]+)', r'\1 \3v.rel', posstr)
+    #fixed tags for དེ་ after verbs --> cv.sem
+    posstr = re.sub(r'([ༀ-࿘]//?v\.[^\s]*)\s((?:དེ)་?//?)([^\s]+)', r'\1 \2cv.sem', posstr)
+    #fixed tags for _ , __ ,___ (missing sylables in otdo) --> missing
+    posstr = re.sub(r'(^|\s)((?:_|__|___)་?//?)([^\s]+)', r'\1\2missing', posstr)
+    
     return posstr
-
+    
 WTConfig = Config() # TODO: load only the GMD
 WT = WordTokenizer(WTConfig)
 
@@ -498,6 +516,19 @@ def correctutts(posstr):
     #posstr = re.sub(r'\n',r' ',posstr) #delete all \n before adding the following:
 
     #add <utt> after cv.fin
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin p[0-9]*/page\.num [༑།༔]/punc [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin ln[0-9]*/line\.num [༑།༔]/punc [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin [༑།༔]/punc p[0-9]*/page\.num [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin [༑།༔]/punc ln[0-9]*/line\.num [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin [༑།༔]/punc [༑།༔]/punc)',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin p[0-9]*/page\.num [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin ln[0-9]*/line\.num [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin [༑།༔]/punc p[0-9]*/page\.num)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin [༑།༔]/punc ln[0-9]*/line\.num)\s?\n?',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin [༑།༔]/punc)(?!\s།/punc)',r'\1 <utt>',posstr)
+    posstr = re.sub(r'([ༀ-࿘]*/cv\.fin)(?!\s།/punc)',r'\1 <utt>',posstr)
+
+    #add <utt> after case.fin
     posstr = re.sub(r'([ༀ-࿘]*/cv\.fin p[0-9]*/page\.num [༑།༔]/punc [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
     posstr = re.sub(r'([ༀ-࿘]*/cv\.fin ln[0-9]*/line\.num [༑།༔]/punc [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
     posstr = re.sub(r'([ༀ-࿘]*/cv\.fin [༑།༔]/punc p[0-9]*/page\.num [༑།༔]/punc)\s?\n?',r'\1 <utt>',posstr)
